@@ -1,0 +1,45 @@
+TTS English Bangla Parimal2
+
+#!pip install TTS
+#!pip install silero
+#!pip install aksharamukha
+
+import pandas as pd
+import torch
+from TTS.api import TTS
+from IPython.display import Audio
+from aksharamukha import transliterate
+
+# Load English dataset
+english_data = pd.read_csv('eng_dataset.csv')
+if 'text' not in english_data.columns:
+    english_data = english_data.rename(columns={'sentences': 'text'})
+
+# Load Bangla dataset
+bangla_data = pd.read_csv('bangla_dataset.csv')
+if 'text' not in bangla_data.columns:
+    bangla_data = bangla_data.rename(columns={'sentences': 'text'})
+
+# English TTS
+english_model_name = "tts_models/en/ljspeech/tacotron2-DDC"
+english_tts_model = TTS(model_name=english_model_name)
+
+# Bangla TTS using Silero
+from silero import silero_tts
+model, example_text = silero_tts(language='indic',speaker='v3_indic')
+
+model = model.to(torch.device('cpu'))  # Or 'cuda' if using a GPU
+def generate_bangla_speech(text):
+    roman_text = transliterate.process('Bengali', 'ISO', text)
+    audio = model.apply_tts(text=roman_text, speaker='bengali_female')  # Added text= for clarity
+    return audio
+
+
+# Example usage
+english_text = english_data['text'][0]
+english_audio = english_tts_model.tts(english_text)
+display(Audio(english_audio, rate=22050))
+
+bangla_text = bangla_data['text'][0]
+bangla_audio = generate_bangla_speech(bangla_text)
+display(Audio(bangla_audio, rate=48000))
